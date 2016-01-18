@@ -1,0 +1,18 @@
+menu:
+    博客: /
+    微博: http://weibo.com/sunchongsheng
+    rss: /atom.xml
+    github: https://github.com/pinggod
+
+favicon: /favicon.png
+logo: /favicon.png
+
+# comment
+# e.g disqus: seansun
+disqus: 
+duoshuo: 
+
+# google-analytics:
+#ga: 410-1
+# baidu-analytics:
+#ba: //hm.baidu.com/hm.js?a36e15d9e2adec9a21fcdd9f686b1ed2
