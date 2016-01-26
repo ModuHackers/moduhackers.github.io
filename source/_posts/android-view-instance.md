@@ -1,9 +1,18 @@
 ---
-title: Android View的实例化
+title: Android xml布局中View的实例化
 author: 冯神柱
+date: 2016-01-21 15:18:00
+tags:
+- Android
+- View
+categories:
+- Android原理
 ---
-##### 从xml到View：
-Activity：
+xml布局文件是Android界面最重要的资源。当我们在Activity里调起熟悉的`setContentView(R.layout.xxx)`，是否想知道这些这些对应xml中每个标签对应的View对象是怎么创建出来的。
+
+#### 起航
+<!-- more -->
+调用Activity的setContentView时，layout布局资源文件id作为参数传入。
 ```java
 public void setContentView(int layoutResID) {
     ...
@@ -11,7 +20,10 @@ public void setContentView(int layoutResID) {
     ...
 }
 ```
-LayoutInflater:
+真正布局需要LayoutInflater完成。
+#### LayoutInflater--专业布局二十年
+LayoutInflater的功能是把xml布局文件实例化成View对象。下面开始分析其过程。
+##### 解析布局xml
 ```java
 public View inflate(@LayoutRes int resource, @Nullable ViewGroup root, boolean attachToRoot) {
     final Resources res = getContext().getResources();
@@ -24,7 +36,9 @@ public View inflate(@LayoutRes int resource, @Nullable ViewGroup root, boolean a
     }
     ...
 }
-
+```
+##### 创建布局根View，递归布局Child View
+```java
 public View inflate(XmlPullParser parser, @Nullable ViewGroup root, boolean attachToRoot) {
     ...
     final View temp = createViewFromTag(root, name, inflaterContext, attrs); // 创建用户xml根布局View
@@ -33,7 +47,7 @@ public View inflate(XmlPullParser parser, @Nullable ViewGroup root, boolean atta
     ...
 }
 
-// rInflateChildren调用到
+// rInflateChildren辗转调用到
 void rInflate(XmlPullParser parser, View parent, Context context,
             AttributeSet attrs, boolean finishInflate) throws XmlPullParserException, IOException {
     ...
@@ -45,7 +59,7 @@ void rInflate(XmlPullParser parser, View parent, Context context,
     ...
 }
 ```
-都指向了LayoutInflater.createViewFromTag()
+##### Parent View和Children View都走到LayoutInflater.createViewFromTag()
 ```java
 View createViewFromTag(View parent, String name, Context context, AttributeSet attrs,
             boolean ignoreThemeAttr) {
@@ -81,30 +95,31 @@ View createViewFromTag(View parent, String name, Context context, AttributeSet a
     ...
 }
 ```
+作为一个纯纯的人，不设置LayoutInflater的Factory2和Factory、不重载Activity的onCreateView()或重载了不在里面把View搞出来，那就按部就班地走到了line 21。
+还记得吗，曾经写xml布局的时候，标签里的"android.widget.TextView"可以偷懒写成"TextView"。自定义View写到布局时，总是要确保包名正确。
+```xml
+<TextView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"/>
 
-##### xml布局文件中简写的系统View需要补全前缀
+<com.ugly.CustomView
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"/>
+```
+不是亲生的外貌都被歧视了。
+###### 强插：xml布局文件中简写的系统View补全前缀
+View的实例化使用了Java反射机制，系统View的类名必须补全，ClassLoader才能找到对应class。如：TextView补全为android.widget.TextView。
 布局的LayoutInflater类型实际为PhoneLayoutInflater。
-系统View自动添加前缀列表，PhoneLayoutInflater.onCreateView()
+系统View自动添加前缀列表，在PhoneLayoutInflater.onCreateView()中有三个：
     - android.widget.
     - android.webkit.
     - android.app.
-添加前缀使用反射尝试找到构造函数来构造View对象，失败了就换个前缀再次尝试下一个前缀。遍历完还是失败，调用super LayoutInflater的方法，添加前缀:
+添加前缀使用反射尝试找到构造函数来构造View对象，失败了就换个前缀再次尝试下一个前缀。PhoneLayoutInflater失败了，调用LayoutInflater，添加前缀:
     - android.view.
-如：LinearLayout补全为android.widget.LinearLayout。
+意淫一下，写布局xml的时候，把View类名补全，是不是效率又变高了呢？
 
-```java
-private Factory mFactory;
-private Factory2 mFactory2;
-private Factory2 mPrivateFactory;
-```
-
-##### LayoutInflater构造View可能的选择：
-1. mFactory2.onCreateView()
-2. mFactory.onCreateView()
-3. mPrivateFactory.onCreateView()，由于Activtiy implements LayoutInflater.Factory2，会调用到Activity的onCreateView() 
-4. LayoutInflater.createView(String name, String prefix, AttributeSet attrs)
-
-##### 实例化View：LayoutInflater.createView()
+line 22 onCreateView整容后也能和line 24一样，走到LayoutInflater.createView()。
+##### 实例化View
 ```java
 public final View createView(String name, String prefix, AttributeSet attrs)
             throws ClassNotFoundException, InflateException {
@@ -115,13 +130,7 @@ public final View createView(String name, String prefix, AttributeSet attrs)
         // Class not found in the cache, see if it's real, and try to add it
         clazz = mContext.getClassLoader().loadClass(
                 prefix != null ? (prefix + name) : name).asSubclass(View.class);
-        
-        if (mFilter != null && clazz != null) {
-            boolean allowed = mFilter.onLoadClass(clazz);
-            if (!allowed) {
-                failNotAllowed(name, prefix, attrs);
-            }
-        }
+        ...        
         constructor = clazz.getConstructor(mConstructorSignature);
         constructor.setAccessible(true);
         sConstructorMap.put(name, constructor); // sConstructorMap缓存使用过的构造函数，减少调用ClassLoader的次数
@@ -137,6 +146,11 @@ public final View createView(String name, String prefix, AttributeSet attrs)
     ...
 }
 ```
-View的对象实例化通过反射调用其构造函数：View(Context context, @Nullable AttributeSet attrs)。
+看来，View的对象实例化是通过反射调用其构造函数完成的。
+```java
+public View(Context context, @Nullable AttributeSet attrs) {
+    this(context, attrs, 0);
+}
+```
 自此，View的Java对象才创建出来。
-如果到这里还没有修改记录View的属性，生米已成熟饭，晚矣!
+
