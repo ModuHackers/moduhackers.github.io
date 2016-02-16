@@ -1,6 +1,6 @@
 ---
 title: Android xml布局中View的实例化
-author: 冯神柱
+author: author2
 date: 2016-01-21 15:18:00
 tags:
 - Android

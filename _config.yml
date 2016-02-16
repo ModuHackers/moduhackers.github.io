@@ -71,3 +71,11 @@ deploy:
     type: git
     repo: git@github.com:ModuHackers/moduhackers.github.io.git
     branch: master
+
+author1:
+    name: 裴佳迪
+    link: http://weibo.com/notice520/
+
+author2:
+    name: 冯神柱
+    link: weibo.com

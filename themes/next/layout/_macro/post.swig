@@ -47,7 +47,14 @@
         {% endif %}
 
         <div class="post-meta">
-          <span >{{ __(post.author) }}
+          <span >
+            <a href="{{theme[post.author].link}}">
+            <span>
+                {{ __(theme[post.author].name) }}
+            </span>
+            </a>
+
+          </span>
           <span class="post-time">
             <span class="post-meta-item-icon">
               <i class="fa fa-calendar-o"></i>

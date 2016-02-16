@@ -1,6 +1,6 @@
 ---
 title: 一种Android换肤机制的实现
-author: 冯神柱
+author: author2
 date: 2016-01-22 15:18:07
 tags:
 - Android
